@@ -2,6 +2,58 @@ import sqlite3
 import bcrypt
 from datetime import datetime
 
+def save_feedback(user_name, user_email, message):
+    """Save user feedback"""
+    conn = get_database_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO feedback (user_name, user_email, message)
+            VALUES (?, ?, ?)
+        ''', (user_name, user_email, message))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error saving feedback: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def get_all_feedback():
+    """Fetch all feedback for admin dashboard (most recent first)"""
+    conn = get_database_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT id, user_name, user_email, message, created_at,
+                   rating, usability_score, feature_satisfaction, missing_features, improvement_suggestions, user_experience
+            FROM feedback
+            ORDER BY created_at DESC
+        ''')
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error fetching feedback: {e}")
+        return []
+    finally:
+        conn.close()
+
+def delete_feedback(feedback_id):
+    """Delete a feedback row by id (admin action)"""
+    conn = get_database_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('DELETE FROM feedback WHERE id = ?', (feedback_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error deleting feedback: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+
 def get_database_connection():
     """Create and return a database connection"""
     conn = sqlite3.connect('resume_data.db')
@@ -47,6 +99,18 @@ def init_database():
     )
     ''')
     
+        # Create feedback table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name TEXT NOT NULL,
+        user_email TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
+
     # Create resume_analysis table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS resume_analysis (

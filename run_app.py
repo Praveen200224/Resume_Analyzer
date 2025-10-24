@@ -3,6 +3,9 @@
 Run script for Smart AI Resume Analyzer
 This script handles Chrome/chromedriver setup and starts the application
 """
+# run_app.py (top)
+from config.database import init_database
+init_database()   # ensures tables (and new feedback table) exist
 
 import os
 import sys
@@ -10,6 +13,8 @@ import subprocess
 import platform
 
 def main():
+
+
     """Main function to set up chromedriver and run the application"""
     print("Starting Smart AI Resume Analyzer...")
     

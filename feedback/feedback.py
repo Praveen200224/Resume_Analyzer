@@ -6,11 +6,11 @@ import time
 
 class FeedbackManager:
     def __init__(self):
-        self.db_path = "feedback/feedback.db"
+        self.db_path = "resume_data.db"
         self.setup_database()
 
     def setup_database(self):
-        """Create feedback table if it doesn't exist"""
+        """Create feedback table if it doesn't exist and add missing columns if needed"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         c.execute('''
@@ -25,26 +25,64 @@ class FeedbackManager:
                 timestamp DATETIME
             )
         ''')
+        # Add missing columns for admin dashboard and feedback form compatibility
+        existing_cols = [row[1] for row in c.execute("PRAGMA table_info(feedback)")]
+        alter_stmts = []
+        # Admin dashboard columns
+        if 'user_name' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN user_name TEXT;")
+        if 'user_email' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN user_email TEXT;")
+        if 'message' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN message TEXT;")
+        if 'created_at' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN created_at DATETIME;")
+        # Feedback form columns
+        if 'rating' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN rating INTEGER;")
+        if 'usability_score' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN usability_score INTEGER;")
+        if 'feature_satisfaction' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN feature_satisfaction INTEGER;")
+        if 'missing_features' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN missing_features TEXT;")
+        if 'improvement_suggestions' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN improvement_suggestions TEXT;")
+        if 'user_experience' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN user_experience TEXT;")
+        if 'timestamp' not in existing_cols:
+            alter_stmts.append("ALTER TABLE feedback ADD COLUMN timestamp DATETIME;")
+        for stmt in alter_stmts:
+            try:
+                c.execute(stmt)
+            except Exception:
+                pass
         conn.commit()
         conn.close()
 
     def save_feedback(self, feedback_data):
-        """Save feedback to database"""
+        """Save feedback to database (with admin dashboard compatibility)"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
+        # Save all fields for both user and admin dashboard compatibility
         c.execute('''
             INSERT INTO feedback (
                 rating, usability_score, feature_satisfaction,
                 missing_features, improvement_suggestions,
-                user_experience, timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                user_experience, timestamp,
+                user_name, user_email, message, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            feedback_data['rating'],
-            feedback_data['usability_score'],
-            feedback_data['feature_satisfaction'],
-            feedback_data['missing_features'],
-            feedback_data['improvement_suggestions'],
-            feedback_data['user_experience'],
+            feedback_data.get('rating'),
+            feedback_data.get('usability_score'),
+            feedback_data.get('feature_satisfaction'),
+            feedback_data.get('missing_features'),
+            feedback_data.get('improvement_suggestions'),
+            feedback_data.get('user_experience'),
+            datetime.now(),
+            feedback_data.get('user_name', ''),
+            feedback_data.get('user_email', ''),
+            feedback_data.get('user_experience', ''),  # Use user_experience as message
             datetime.now()
         ))
         conn.commit()
